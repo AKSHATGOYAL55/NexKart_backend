@@ -74,6 +74,8 @@ const userSchema = new mongoose.Schema(
 // ─── pre save middleware ────────────────────────────────
 // MUST use regular function — NOT arrow function
 // because we need 'this' to refer to the current user document
+
+// This runs before saving a user in database— it hashes the password if it's new or changed
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
     return  // just return — no next()
@@ -85,6 +87,8 @@ userSchema.pre('save', async function () {
 
 // ─── instance method ───────────────────────────────────
 // MUST use regular function — same reason, needs 'this'
+
+//compare form password with Database stored password
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password)
 }

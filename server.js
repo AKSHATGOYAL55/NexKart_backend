@@ -12,7 +12,7 @@ dotenv.config()
 const app = express()
 
 // ─── Security Middleware ───────────────────────────────
-app.use(helmet())
+app.use(helmet())  // Adds security : headers to protect against common vulnerabilitys : 15+ security 
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }))
 
 // ─── Logger ────────────────────────────────────────────
 if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'))
+  app.use(morgan('dev'))    //debugging : show every request in your terminal/console.
 }
 
 // ─── Routes ────────────────────────────────────────────
