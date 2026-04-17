@@ -46,6 +46,10 @@ app.use((req, res) => {
   })
 })
 
+// ─── Global Error Handler ──────────────────────────────
+// MUST be after all routes
+// MUST be last app.use()
+
 app.use(errorHandler)
 
 // ─── START SERVER ──────────────────────────────────────
