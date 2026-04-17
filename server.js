@@ -6,6 +6,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import connectDB from './config/db.js'
+import errorHandler from './middleware/error.middleware.js'
 
 dotenv.config()
 
@@ -44,6 +45,8 @@ app.use((req, res) => {
     message: `Route ${req.originalUrl} not found`
   })
 })
+
+app.use(errorHandler)
 
 // ─── START SERVER ──────────────────────────────────────
 const PORT = process.env.PORT || 5000
