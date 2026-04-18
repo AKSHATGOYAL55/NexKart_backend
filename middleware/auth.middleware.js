@@ -110,3 +110,24 @@ export const protect = asyncHandler(async (req, res, next) => {
   // ── Step 7: Continue to next middleware/controller ──
   next()
 })
+
+
+// ─────────────────────────────────────────────────────
+// ADMIN ONLY MIDDLEWARE
+// Use this AFTER protect — protect sets req.user first
+// then adminOnly checks if that user is an admin
+// ─────────────────────────────────────────────────────
+export const adminOnly = (req, res, next) => {
+  // req.user is already set by protect middleware above
+  // We just check the role field
+  if (req.user && req.user.role === 'admin') {
+    next()  // they are admin — continue
+  } else {
+    throw new AppError(
+      'You do not have permission to perform this action',
+      403
+      // 403 = Forbidden — logged in but not allowed
+      // Different from 401 which means not logged in at all
+    )
+  }
+}
