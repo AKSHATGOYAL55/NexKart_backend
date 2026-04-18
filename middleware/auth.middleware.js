@@ -131,3 +131,31 @@ export const adminOnly = (req, res, next) => {
     )
   }
 }
+
+// ─────────────────────────────────────────────────────
+// OPTIONAL AUTH MIDDLEWARE
+// Use this on routes that WORK for both guests AND logged in users
+// Example: GET /api/products — guests can browse
+//          but if logged in, you might want to show wishlist status
+// ─────────────────────────────────────────────────────
+export const optionalAuth = asyncHandler(async (req, res, next) => {
+  let token
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1]
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      req.user = await User.findById(decoded.id)
+    } catch (err) {
+      // token invalid or expired — that's okay for optional auth
+      // just continue without setting req.user
+      req.user = null
+    }
+  }
+
+  // whether token exists or not — always continue
+  next()
+})
