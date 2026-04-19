@@ -1,6 +1,7 @@
 import User from '../models/User.model.js'
 import asyncHandler from '../utils/asyncHandler.js'
 import AppError from '../utils/AppError.js'
+import jwt from 'jsonwebtoken'
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js'
 
 // ─────────────────────────────────────────────────────
@@ -183,4 +184,86 @@ export const login = asyncHandler(async (req, res) => {
   // ── Step 6: Send token response ────────────────────
   // 200 = OK (existing resource accessed successfully)
   sendTokenResponse(user, 200, res)
+})
+
+
+// ─────────────────────────────────────────────────────
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Protected (must be logged in to logout)
+// ─────────────────────────────────────────────────────
+export const logout = asyncHandler(async (req, res) => {
+  // ── Step 1: Clear refresh token from database ──────
+  // req.user is set by protect middleware
+  // We clear the refreshToken so it can't be used again
+  await User.findByIdAndUpdate(req.user._id, {
+    refreshToken: ''
+  })
+
+  // ── Step 2: Clear the cookie from browser ──────────
+  // Setting the same cookie name with expired date
+  // tells the browser to delete it immediately
+  res.cookie('refreshToken', '', {
+    expires: new Date(0), // January 1, 1970 — already expired!
+    httpOnly: true,
+  })
+
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully'
+  })
+})
+
+// ─────────────────────────────────────────────────────
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+// @access  Protected
+// ─────────────────────────────────────────────────────
+export const getMe = asyncHandler(async (req, res) => {
+  // req.user is already set by protect middleware
+  // We fetch fresh data from DB in case anything changed
+  const user = await User.findById(req.user._id)
+
+  res.status(200).json({
+    success: true,
+    user
+    // password is excluded automatically (select: false)
+  })
+})
+
+// ─────────────────────────────────────────────────────
+// @desc    Refresh access token
+// @route   POST /api/auth/refresh-token
+// @access  Public (uses refresh token cookie)
+// ─────────────────────────────────────────────────────
+export const refreshToken = asyncHandler(async (req, res) => {
+  // ── Step 1: Get refresh token from cookie ──────────
+  // req.cookies contains all cookies sent by browser
+  // We need cookie-parser middleware for this to work
+  const token = req.cookies.refreshToken
+
+  if (!token) {
+    throw new AppError('No refresh token found. Please log in again.', 401)
+  }
+
+  // ── Step 2: Verify refresh token ───────────────────
+  const decoded = jwt.verify(
+    token,
+    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
+  )
+
+  // ── Step 3: Find user and check token matches ──────
+  const user = await User.findById(decoded.id)
+
+  if (!user || user.refreshToken !== token) {
+    throw new AppError('Invalid refresh token. Please log in again.', 401)
+  }
+
+  // ── Step 4: Generate new access token only ─────────
+  const newAccessToken = generateAccessToken(user._id)
+
+  res.status(200).json({
+    success: true,
+    accessToken: newAccessToken
+  })
 })
