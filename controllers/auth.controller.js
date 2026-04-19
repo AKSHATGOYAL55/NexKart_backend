@@ -134,3 +134,53 @@ export const register = asyncHandler(async (req, res) => {
   // }
   // AND a refreshToken cookie is set in the browser
 })
+
+
+// ─────────────────────────────────────────────────────
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
+// ─────────────────────────────────────────────────────
+export const login = asyncHandler(async (req, res) => {
+  // ── Step 1: Get credentials from request ───────────
+  const { email, password } = req.body
+
+  // ── Step 2: Find user by email ─────────────────────
+  // IMPORTANT: we use .select('+password') here
+  // Because password has select:false in schema
+  // it never comes back in normal queries
+  // But for login we NEED it to compare with entered password
+  const user = await User.findOne({ email }).select('+password')
+
+  // ── Step 3: Check user exists ──────────────────────
+  if (!user) {
+    // SECURITY TIP: Don't say "email not found"
+    // That tells attackers which emails are registered
+    // Instead say "Invalid credentials" for both wrong
+    // email AND wrong password — same vague message
+    throw new AppError('Invalid email or password', 401)
+  }
+
+  // ── Step 4: Check password is correct ──────────────
+  // user.comparePassword() is our instance method from User.model.js
+  // It runs bcrypt.compare(enteredPassword, user.password)
+  // Returns true if match, false if wrong
+  const isPasswordMatch = await user.comparePassword(password)
+
+  if (!isPasswordMatch) {
+    throw new AppError('Invalid email or password', 401)
+    // same message as wrong email — security best practice
+  }
+
+  // ── Step 5: Check account is active ────────────────
+  if (!user.isActive) {
+    throw new AppError(
+      'Your account has been deactivated. Please contact support.',
+      401
+    )
+  }
+
+  // ── Step 6: Send token response ────────────────────
+  // 200 = OK (existing resource accessed successfully)
+  sendTokenResponse(user, 200, res)
+})
