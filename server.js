@@ -7,6 +7,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import connectDB from './config/db.js'
 import errorHandler from './middleware/error.middleware.js'
+import cookieParser from 'cookie-parser'
 
 dotenv.config()
 
@@ -21,6 +22,7 @@ app.use(cors({
 
 // ─── Body Parsing ──────────────────────────────────────
 app.use(express.json())
+app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }))
 
 // ─── Logger ────────────────────────────────────────────
