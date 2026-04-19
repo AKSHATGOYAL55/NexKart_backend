@@ -80,3 +80,57 @@ const sendTokenResponse = (user, statusCode, res) => {
     // never send refreshToken, passwordResetToken etc.
   })
 }
+
+// @desc    Register new user
+// @route   POST /api/auth/register
+// @access  Public (anyone can register)
+// ─────────────────────────────────────────────────────
+export const register = asyncHandler(async (req, res) => {
+  // ── Step 1: Get data from request body ─────────────
+  // req.body contains what the frontend sent
+  // Example: { name: "Akshat", email: "a@gmail.com",
+  //            password: "Pass123", confirmPassword: "Pass123" }
+  const { name, email, password } = req.body
+  // note: we don't need confirmPassword here
+  // it was already validated in auth.validator.js
+  // its only purpose was to confirm passwords match on frontend
+
+  // ── Step 2: Check if email already exists ──────────
+  // Even though email has unique:true in schema,
+  // checking here gives us a cleaner error message
+  const existingUser = await User.findOne({ email })
+  // User.findOne({ email }) is shorthand for
+  // User.findOne({ email: email })
+
+  if (existingUser) {
+    throw new AppError(
+      'An account with this email already exists. Please login instead.',
+      400
+    )
+}
+  // ── Step 3: Create the user ─────────────────────────
+  // User.create() does two things:
+  // 1. Creates a new User instance
+  // 2. Calls .save() which triggers pre('save') middleware
+  //    pre('save') automatically hashes the password
+  // So by the time user is saved, password is already hashed
+  const user = await User.create({
+    name,
+    email,
+    password,
+    // role defaults to 'user' as defined in schema
+    // isActive defaults to true
+  })
+
+  // ── Step 4: Send token response ────────────────────
+  // 201 = Created (new resource was created)
+  sendTokenResponse(user, 201, res)
+
+  // At this point the client receives:
+  // {
+  //   success: true,
+  //   accessToken: "eyJhbGci...",
+  //   user: { _id, name, email, role, avatar, phone }
+  // }
+  // AND a refreshToken cookie is set in the browser
+})
