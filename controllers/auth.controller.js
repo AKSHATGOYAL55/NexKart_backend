@@ -29,7 +29,7 @@ import { generateAccessToken, generateRefreshToken } from '../utils/generateToke
 // and sends the response back to the client
 // We put it here so we don't repeat this code twice
 
-const sendTokenResponse = (user, statusCode, res) => {
+const sendTokenResponse = async (user, statusCode, res) => {
   // Generate both tokens using the user's MongoDB _id
   const accessToken = generateAccessToken(user._id)
   const refreshToken = generateRefreshToken(user._id)
@@ -49,7 +49,7 @@ const sendTokenResponse = (user, statusCode, res) => {
   // Store refresh token in database
   // So we can invalidate it on logout
   user.refreshToken = refreshToken
-  user.save({ validateBeforeSave: false })
+  await user.save({ validateBeforeSave: false })
   // validateBeforeSave: false — skip schema validation
   // because we're only updating refreshToken field
   // we don't want to re-validate name, email etc.
@@ -91,6 +91,10 @@ export const register = asyncHandler(async (req, res) => {
   // req.body contains what the frontend sent
   // Example: { name: "Akshat", email: "a@gmail.com",
   //            password: "Pass123", confirmPassword: "Pass123" }
+
+console.log("BODY:", req.body)
+  console.log("PASSWORD:", req.body.password)
+
   const { name, email, password } = req.body
   // note: we don't need confirmPassword here
   // it was already validated in auth.validator.js
@@ -99,6 +103,7 @@ export const register = asyncHandler(async (req, res) => {
   // ── Step 2: Check if email already exists ──────────
   // Even though email has unique:true in schema,
   // checking here gives us a cleaner error message
+
   const existingUser = await User.findOne({ email })
   // User.findOne({ email }) is shorthand for
   // User.findOne({ email: email })
@@ -125,7 +130,7 @@ export const register = asyncHandler(async (req, res) => {
 
   // ── Step 4: Send token response ────────────────────
   // 201 = Created (new resource was created)
-  sendTokenResponse(user, 201, res)
+  await sendTokenResponse(user, 201, res)
 
   // At this point the client receives:
   // {
@@ -142,38 +147,67 @@ export const register = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 // ─────────────────────────────────────────────────────
+// export const login = asyncHandler(async (req, res) => {
+//   // ── Step 1: Get credentials from request ───────────
+//   const { email, password } = req.body
+
+//   // ── Step 2: Find user by email ─────────────────────
+//   // IMPORTANT: we use .select('+password') here
+//   // Because password has select:false in schema
+//   // it never comes back in normal queries
+//   // But for login we NEED it to compare with entered password
+//   const user = await User.findOne({ email }).select('+password')
+
+//   // ── Step 3: Check user exists ──────────────────────
+//   if (!user) {
+//     // SECURITY TIP: Don't say "email not found"
+//     // That tells attackers which emails are registered
+//     // Instead say "Invalid credentials" for both wrong
+//     // email AND wrong password — same vague message
+//     throw new AppError('Invalid email or password', 401)
+//   }
+
+//   // ── Step 4: Check password is correct ──────────────
+//   // user.comparePassword() is our instance method from User.model.js
+//   // It runs bcrypt.compare(enteredPassword, user.password)
+//   // Returns true if match, false if wrong
+//   const isPasswordMatch = await user.comparePassword(password)
+
+//   if (!isPasswordMatch) {
+//     throw new AppError('Invalid email or password', 401)
+//     // same message as wrong email — security best practice
+//   }
+
+//   // ── Step 5: Check account is active ────────────────
+//   if (!user.isActive) {
+//     throw new AppError(
+//       'Your account has been deactivated. Please contact support.',
+//       401
+//     )
+//   }
+
+//   // ── Step 6: Send token response ────────────────────
+//   // 200 = OK (existing resource accessed successfully)
+//   await sendTokenResponse(user, 200, res)
+// })
+
 export const login = asyncHandler(async (req, res) => {
-  // ── Step 1: Get credentials from request ───────────
   const { email, password } = req.body
 
-  // ── Step 2: Find user by email ─────────────────────
-  // IMPORTANT: we use .select('+password') here
-  // Because password has select:false in schema
-  // it never comes back in normal queries
-  // But for login we NEED it to compare with entered password
-  const user = await User.findOne({ email }).select('+password')
+  // Convert email to lowercase before searching
+  const normalizedEmail = email.toLowerCase()
 
-  // ── Step 3: Check user exists ──────────────────────
+  const user = await User.findOne({ email: normalizedEmail }).select('+password')
+
   if (!user) {
-    // SECURITY TIP: Don't say "email not found"
-    // That tells attackers which emails are registered
-    // Instead say "Invalid credentials" for both wrong
-    // email AND wrong password — same vague message
     throw new AppError('Invalid email or password', 401)
   }
 
-  // ── Step 4: Check password is correct ──────────────
-  // user.comparePassword() is our instance method from User.model.js
-  // It runs bcrypt.compare(enteredPassword, user.password)
-  // Returns true if match, false if wrong
   const isPasswordMatch = await user.comparePassword(password)
-
   if (!isPasswordMatch) {
     throw new AppError('Invalid email or password', 401)
-    // same message as wrong email — security best practice
   }
 
-  // ── Step 5: Check account is active ────────────────
   if (!user.isActive) {
     throw new AppError(
       'Your account has been deactivated. Please contact support.',
@@ -181,9 +215,7 @@ export const login = asyncHandler(async (req, res) => {
     )
   }
 
-  // ── Step 6: Send token response ────────────────────
-  // 200 = OK (existing resource accessed successfully)
-  sendTokenResponse(user, 200, res)
+  await sendTokenResponse(user, 200, res)
 })
 
 
@@ -192,44 +224,44 @@ export const login = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Protected (must be logged in to logout)
 // ─────────────────────────────────────────────────────
-export const logout = asyncHandler(async (req, res) => {
-  // ── Step 1: Clear refresh token from database ──────
-  // req.user is set by protect middleware
-  // We clear the refreshToken so it can't be used again
-  await User.findByIdAndUpdate(req.user._id, {
-    refreshToken: ''
-  })
+// export const logout = asyncHandler(async (req, res) => {
+//   // ── Step 1: Clear refresh token from database ──────
+//   // req.user is set by protect middleware
+//   // We clear the refreshToken so it can't be used again
+//   await User.findByIdAndUpdate(req.user._id, {
+//     refreshToken: ''
+//   })
 
-  // ── Step 2: Clear the cookie from browser ──────────
-  // Setting the same cookie name with expired date
-  // tells the browser to delete it immediately
-  res.cookie('refreshToken', '', {
-    expires: new Date(0), // January 1, 1970 — already expired!
-    httpOnly: true,
-  })
+//   // ── Step 2: Clear the cookie from browser ──────────
+//   // Setting the same cookie name with expired date
+//   // tells the browser to delete it immediately
+//   res.cookie('refreshToken', '', {
+//     expires: new Date(0), // January 1, 1970 — already expired!
+//     httpOnly: true,
+//   })
 
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully'
-  })
-})
+//   res.status(200).json({
+//     success: true,
+//     message: 'Logged out successfully'
+//   })
+// })
 
 // ─────────────────────────────────────────────────────
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Protected
 // ─────────────────────────────────────────────────────
-export const getMe = asyncHandler(async (req, res) => {
-  // req.user is already set by protect middleware
-  // We fetch fresh data from DB in case anything changed
-  const user = await User.findById(req.user._id)
+// export const getMe = asyncHandler(async (req, res) => {
+//   // req.user is already set by protect middleware
+//   // We fetch fresh data from DB in case anything changed
+//   const user = await User.findById(req.user._id)
 
-  res.status(200).json({
-    success: true,
-    user
-    // password is excluded automatically (select: false)
-  })
-})
+//   res.status(200).json({
+//     success: true,
+//     user
+//     // password is excluded automatically (select: false)
+//   })
+// })
 
 // ─────────────────────────────────────────────────────
 // @desc    Refresh access token

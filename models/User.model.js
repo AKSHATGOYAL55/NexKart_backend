@@ -80,6 +80,18 @@ userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
     return  // just return — no next()
   }
+
+  if (!this.password) return   // ❗ throw mat karo
+
+
+  //   if (!this.password) {
+  //   throw new Error("Password is missing")
+  // }
+
+  //  if (typeof this.password !== 'string') {
+  //   throw new Error("Invalid password")
+  // }
+
   const salt = await bcrypt.genSalt(10)
   this.password = await bcrypt.hash(this.password, salt)
   // no next() call needed — Mongoose handles it automatically
