@@ -21,7 +21,7 @@ router.post('/login', validateLogin, validate, login)
 router.post('/refresh-token', refreshToken)
 
 // ─── PROTECTED ROUTES ──────────────────────────────────
-// router.post('/logout', protect, logout)
-// router.get('/me', protect, getMe)
+router.post('/logout', protect, logout)
+router.get('/me', protect, getMe)
 
 export default router
