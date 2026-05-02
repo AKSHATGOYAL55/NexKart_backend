@@ -224,44 +224,44 @@ export const login = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Protected (must be logged in to logout)
 // ─────────────────────────────────────────────────────
-// export const logout = asyncHandler(async (req, res) => {
-//   // ── Step 1: Clear refresh token from database ──────
-//   // req.user is set by protect middleware
-//   // We clear the refreshToken so it can't be used again
-//   await User.findByIdAndUpdate(req.user._id, {
-//     refreshToken: ''
-//   })
+export const logout = asyncHandler(async (req, res) => {
+  // ── Step 1: Clear refresh token from database ──────
+  // req.user is set by protect middleware
+  // We clear the refreshToken so it can't be used again
+  await User.findByIdAndUpdate(req.user._id, {
+    refreshToken: ''
+  })
 
-//   // ── Step 2: Clear the cookie from browser ──────────
-//   // Setting the same cookie name with expired date
-//   // tells the browser to delete it immediately
-//   res.cookie('refreshToken', '', {
-//     expires: new Date(0), // January 1, 1970 — already expired!
-//     httpOnly: true,
-//   })
+  // ── Step 2: Clear the cookie from browser ──────────
+  // Setting the same cookie name with expired date
+  // tells the browser to delete it immediately
+  res.cookie('refreshToken', '', {
+    expires: new Date(0), // January 1, 1970 — already expired!
+    httpOnly: true,
+  })
 
-//   res.status(200).json({
-//     success: true,
-//     message: 'Logged out successfully'
-//   })
-// })
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully'
+  })
+})
 
 // ─────────────────────────────────────────────────────
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Protected
 // ─────────────────────────────────────────────────────
-// export const getMe = asyncHandler(async (req, res) => {
-//   // req.user is already set by protect middleware
-//   // We fetch fresh data from DB in case anything changed
-//   const user = await User.findById(req.user._id)
+export const getMe = asyncHandler(async (req, res) => {
+  // req.user is already set by protect middleware
+  // We fetch fresh data from DB in case anything changed
+  const user = await User.findById(req.user._id)
 
-//   res.status(200).json({
-//     success: true,
-//     user
-//     // password is excluded automatically (select: false)
-//   })
-// })
+  res.status(200).json({
+    success: true,
+    user
+    // password is excluded automatically (select: false)
+  })
+})
 
 // ─────────────────────────────────────────────────────
 // @desc    Refresh access token
