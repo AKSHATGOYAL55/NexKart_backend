@@ -10,6 +10,8 @@ import errorHandler from './middleware/error.middleware.js'
 import cookieParser from 'cookie-parser'
 // import { login, register } from './controllers/auth.controller.js'
 import authRoutes from './routes/auth.routes.js'
+import productRoutes from './routes/product.routes.js'
+
 
 
 dotenv.config()
@@ -44,6 +46,7 @@ app.get('/api/health', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/products', productRoutes,  )
 // app.use('/api/auth', register)
 // app.use('api/auth', login)
 

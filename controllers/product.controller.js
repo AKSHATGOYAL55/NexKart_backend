@@ -102,35 +102,60 @@ export const getProducts = asyncHandler(async (req, res) => {
 // @route   GET /api/products/:idOrSlug
 // @access  Public
 // ─────────────────────────────────────────────────────
+// export const getProduct = asyncHandler(async (req, res) => {
+//   const { idOrSlug } = req.params
+
+//   // Try to find by ID first, if that fails try slug
+//   // This allows both URLs to work:
+//   // /api/products/64abc123... (MongoDB ID)
+//   // /api/products/apple-iphone-15-pro (slug)
+//   let product
+
+//   // Check if it looks like a MongoDB ObjectId (24 hex characters)
+//   if (idOrSlug.match(/^[0-9a-fA-F]{24}$/)) {
+//     product = await Product.findById(idOrSlug)
+//       .populate('createdBy', 'name email')
+//       .populate('updatedBy', 'name email')
+//       .populate({
+//         // path: 'reviews',
+//         populate: { path: 'user', select: 'name avatar' },
+//         options: { sort: { createdAt: -1 }, limit: 10 }, // latest 10 reviews
+//       })
+//   } else {
+//     // Not an ID, treat as slug
+//     product = await Product.findOne({ slug: idOrSlug })
+//       .populate('createdBy', 'name email')
+//       .populate('updatedBy', 'name email')
+//       .populate({
+//         path: 'reviews',
+//         populate: { path: 'user', select: 'name avatar' },
+//         options: { sort: { createdAt: -1 }, limit: 10 },
+//       })
+//   }
+
+//   if (!product) {
+//     throw new AppError('Product not found', 404)
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     product,
+//   })
+// })
+
 export const getProduct = asyncHandler(async (req, res) => {
   const { idOrSlug } = req.params
 
-  // Try to find by ID first, if that fails try slug
-  // This allows both URLs to work:
-  // /api/products/64abc123... (MongoDB ID)
-  // /api/products/apple-iphone-15-pro (slug)
   let product
 
-  // Check if it looks like a MongoDB ObjectId (24 hex characters)
   if (idOrSlug.match(/^[0-9a-fA-F]{24}$/)) {
     product = await Product.findById(idOrSlug)
       .populate('createdBy', 'name email')
       .populate('updatedBy', 'name email')
-      .populate({
-        path: 'reviews',
-        populate: { path: 'user', select: 'name avatar' },
-        options: { sort: { createdAt: -1 }, limit: 10 }, // latest 10 reviews
-      })
   } else {
-    // Not an ID, treat as slug
     product = await Product.findOne({ slug: idOrSlug })
       .populate('createdBy', 'name email')
       .populate('updatedBy', 'name email')
-      .populate({
-        path: 'reviews',
-        populate: { path: 'user', select: 'name avatar' },
-        options: { sort: { createdAt: -1 }, limit: 10 },
-      })
   }
 
   if (!product) {
