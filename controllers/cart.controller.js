@@ -246,104 +246,104 @@ export const removeCartItem = asyncHandler(async (req, res) => {
 // @route   DELETE /api/cart/clear
 // @access  Protected
 // ─────────────────────────────────────────────────────
-// export const clearCart = asyncHandler(async (req, res) => {
-//   const cart = await Cart.findOne({ user: req.user._id })
+export const clearCart = asyncHandler(async (req, res) => {
+  const cart = await Cart.findOne({ user: req.user._id })
 
-//   if (!cart) {
-//     throw new AppError('Cart not found', 404)
-//   }
+  if (!cart) {
+    throw new AppError('Cart not found', 404)
+  }
 
-//   // Empty the items array
-//   cart.items = []
-//   cart.coupon = undefined
+  // Empty the items array
+  cart.items = []
+  cart.coupon = undefined
 
-//   await cart.save()
+  await cart.save()
 
-//   res.status(200).json({
-//     success: true,
-//     message: 'Cart cleared',
-//     cart,
-//   })
-// })
+  res.status(200).json({
+    success: true,
+    message: 'Cart cleared',
+    cart,
+  })
+})
 
 // ─────────────────────────────────────────────────────
 // @desc    Apply coupon to cart
 // @route   POST /api/cart/coupon
 // @access  Protected
 // ─────────────────────────────────────────────────────
-// export const applyCoupon = asyncHandler(async (req, res) => {
-//   const { code } = req.body
+export const applyCoupon = asyncHandler(async (req, res) => {
+  const { code } = req.body
 
-//   if (!code) {
-//     throw new AppError('Coupon code is required', 400)
-//   }
+  if (!code) {
+    throw new AppError('Coupon code is required', 400)
+  }
 
-//   // ── Find cart ──────────────────────────────────────
-//   const cart = await Cart.findOne({ user: req.user._id })
+  // ── Find cart ──────────────────────────────────────
+  const cart = await Cart.findOne({ user: req.user._id })
 
-//   if (!cart) {
-//     throw new AppError('Cart not found', 404)
-//   }
+  if (!cart) {
+    throw new AppError('Cart not found', 404)
+  }
 
-//   if (cart.items.length === 0) {
-//     throw new AppError('Cart is empty', 400)
-//   }
+  if (cart.items.length === 0) {
+    throw new AppError('Cart is empty', 400)
+  }
 
-//   // ── Validate coupon ────────────────────────────────
-//   // For now, we'll use hardcoded coupons
-//   // Later you can create a Coupon model and check database
+  // ── Validate coupon ────────────────────────────────
+  // For now, we'll use hardcoded coupons
+  // Later you can create a Coupon model and check database
 
-//   const coupons = {
-//     SAVE10: { discount: 10, discountType: 'percentage' },
-//     SAVE100: { discount: 100, discountType: 'fixed' },
-//     WELCOME20: { discount: 20, discountType: 'percentage' },
-//   }
+  const coupons = {
+    SAVE10: { discount: 10, discountType: 'percentage' },
+    SAVE100: { discount: 100, discountType: 'fixed' },
+    WELCOME20: { discount: 20, discountType: 'percentage' },
+  }
 
-//   const coupon = coupons[code.toUpperCase()]
+  const coupon = coupons[code.toUpperCase()]
 
-//   if (!coupon) {
-//     throw new AppError('Invalid coupon code', 400)
-//   }
+  if (!coupon) {
+    throw new AppError('Invalid coupon code', 400)
+  }
 
-//   // ── Apply coupon ───────────────────────────────────
-//   cart.coupon = {
-//     code: code.toUpperCase(),
-//     discount: coupon.discount,
-//     discountType: coupon.discountType,
-//   }
+  // ── Apply coupon ───────────────────────────────────
+  cart.coupon = {
+    code: code.toUpperCase(),
+    discount: coupon.discount,
+    discountType: coupon.discountType,
+  }
 
-//   await cart.save()
+  await cart.save()
 
-//   await cart.populate('items.product', 'name slug price discountPrice images stock')
+  await cart.populate('items.product', 'name slug price discountPrice images stock')
 
-//   res.status(200).json({
-//     success: true,
-//     message: `Coupon ${code.toUpperCase()} applied successfully`,
-//     cart,
-//   })
-// })
+  res.status(200).json({
+    success: true,
+    message: `Coupon ${code.toUpperCase()} applied successfully`,
+    cart,
+  })
+})
 
 // ─────────────────────────────────────────────────────
 // @desc    Remove coupon from cart
 // @route   DELETE /api/cart/coupon
 // @access  Protected
 // ─────────────────────────────────────────────────────
-// export const removeCoupon = asyncHandler(async (req, res) => {
-//   const cart = await Cart.findOne({ user: req.user._id })
+export const removeCoupon = asyncHandler(async (req, res) => {
+  const cart = await Cart.findOne({ user: req.user._id })
 
-//   if (!cart) {
-//     throw new AppError('Cart not found', 404)
-//   }
+  if (!cart) {
+    throw new AppError('Cart not found', 404)
+  }
 
-//   cart.coupon = undefined
+  cart.coupon = undefined
 
-//   await cart.save()
+  await cart.save()
 
-//   await cart.populate('items.product', 'name slug price discountPrice images stock')
+  await cart.populate('items.product', 'name slug price discountPrice images stock')
 
-//   res.status(200).json({
-//     success: true,
-//     message: 'Coupon removed',
-//     cart,
-//   })
-// })
+  res.status(200).json({
+    success: true,
+    message: 'Coupon removed',
+    cart,
+  })
+})
