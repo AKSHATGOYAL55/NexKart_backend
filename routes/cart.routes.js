@@ -39,10 +39,10 @@ router.delete('/clear', protect, clearCart)
 
 // Apply coupon
 // POST /api/cart/coupon
-// router.post('/coupon', protect, applyCoupon)
+router.post('/coupon', protect, applyCoupon)
 
 // Remove coupon
 // DELETE /api/cart/coupon
-// router.delete('/coupon', protect, removeCoupon)
+router.delete('/coupon', protect, removeCoupon)
 
 export default router
