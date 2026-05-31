@@ -1,4 +1,5 @@
-import Cart from '../models/Cart.model.js'
+// import Cart from '../models/Cart.model.js'
+import Cart from "../models/Cart.models.js"
 import Product from '../models/Product.model.js'
 import asyncHandler from '../utils/asyncHandler.js'
 import AppError from '../utils/AppError.js'
