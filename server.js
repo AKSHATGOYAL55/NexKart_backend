@@ -11,6 +11,7 @@ import cookieParser from 'cookie-parser'
 // import { login, register } from './controllers/auth.controller.js'
 import authRoutes from './routes/auth.routes.js'
 import productRoutes from './routes/product.routes.js'
+import cartRoutes from './routes/cart.routes.js'
 
 
 
@@ -47,6 +48,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes,  )
+app.use("/api/cart", cartRoutes)
 // app.use('/api/auth', register)
 // app.use('api/auth', login)
 
