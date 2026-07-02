@@ -17,76 +17,161 @@ import AppError from '../utils/AppError.js'
 // @route   GET /api/products
 // @access  Public
 // ─────────────────────────────────────────────────────
+
+// ---------------replace get products-----------------
+// export const getProducts = asyncHandler(async (req, res) => {
+//   // ── Extract query parameters ───────────────────────
+//   const {
+//     keyword,      // search term
+//     category,     // filter by category
+//     brand,        // filter by brand
+//     minPrice,     // filter price range
+//     maxPrice,
+//     rating,       // filter by minimum rating
+//     page = 1,     // pagination
+//     limit = 12,   // products per page
+//     sort = '-createdAt', // sort field (- means descending)
+//   } = req.query
+
+//   // ── Build filter object ────────────────────────────
+//   const filter = { isActive: true } // only show active products
+
+//   // Search by keyword — searches in name, description, brand
+//   if (keyword) {
+//     filter.$text = { $search: keyword }
+//     // $text uses the text index we created in the model
+//     // Example: keyword="iphone" finds all products with "iphone" in name/desc/brand
+//   }
+
+//   // Filter by category
+//   if (category) {
+//     filter.category = category
+//   }
+
+//   // Filter by brand
+//   if (brand) {
+//     filter.brand = brand
+//   }
+
+//   // Filter by price range
+//   if (minPrice || maxPrice) {
+//     filter.price = {}
+//     if (minPrice) filter.price.$gte = Number(minPrice) // greater than or equal
+//     if (maxPrice) filter.price.$lte = Number(maxPrice) // less than or equal
+//   }
+
+//   // Filter by minimum rating
+//   if (rating) {
+//     filter['ratings.average'] = { $gte: Number(rating) }
+//     // Example: rating=4 shows only products with 4+ stars
+//   }
+
+//   // ── Calculate pagination ───────────────────────────
+//   const skip = (Number(page) - 1) * Number(limit)
+//   // page 1 → skip 0
+//   // page 2 → skip 12
+//   // page 3 → skip 24
+
+//   // ── Execute query ──────────────────────────────────
+//   const products = await Product.find(filter)
+//     .sort(sort)
+//     // sort examples:
+//     // '-createdAt' → newest first
+//     // 'price' → cheapest first
+//     // '-price' → most expensive first
+//     // '-ratings.average' → highest rated first
+//     .skip(skip)
+//     .limit(Number(limit))
+//     .populate('createdBy', 'name email') // include creator's name and email
+//     .select('-reviews') // exclude reviews array (too big, fetch separately)
+
+//   // ── Get total count for pagination ────────────────
+//   const total = await Product.countDocuments(filter)
+
+//   // ── Send response ──────────────────────────────────
+//   res.status(200).json({
+//     success: true,
+//     count: products.length,
+//     total,
+//     page: Number(page),
+//     pages: Math.ceil(total / Number(limit)),
+//     products,
+//   })
+// })
+
 export const getProducts = asyncHandler(async (req, res) => {
-  // ── Extract query parameters ───────────────────────
   const {
-    keyword,      // search term
-    category,     // filter by category
-    brand,        // filter by brand
-    minPrice,     // filter price range
+    keyword,
+    category,
+    brand,
+    minPrice,
     maxPrice,
-    rating,       // filter by minimum rating
-    page = 1,     // pagination
-    limit = 12,   // products per page
-    sort = '-createdAt', // sort field (- means descending)
+    rating,
+    page = 1,
+    limit = 12,
+    sort = '-createdAt',
   } = req.query
 
   // ── Build filter object ────────────────────────────
-  const filter = { isActive: true } // only show active products
+  const filter = { isActive: true }
 
-  // Search by keyword — searches in name, description, brand
-  if (keyword) {
-    filter.$text = { $search: keyword }
-    // $text uses the text index we created in the model
-    // Example: keyword="iphone" finds all products with "iphone" in name/desc/brand
+  // ── FIXED: Partial / fuzzy search ─────────────────
+  // Old: filter.$text = { $search: keyword }
+  // Problem: only matches complete words
+  // "sams" won't match "Samsung"
+
+  // New: regex search — matches ANY part of the word
+  // "sams" WILL match "Samsung", "samsclub", etc.
+  // "wat" WILL match "Watch", "Water", "Waterproof"
+  // Case insensitive — 'i' flag
+  if (keyword && keyword.trim()) {
+    const searchRegex = new RegExp(keyword.trim(), 'i')
+    // 'i' = case insensitive
+    // RegExp('sams', 'i') matches "Samsung", "SAMS", "sams", "Samsung Galaxy"
+
+    filter.$or = [
+      // Search across multiple fields simultaneously
+      // $or means: match if ANY of these conditions are true
+      { name: { $regex: searchRegex } },
+      { brand: { $regex: searchRegex } },
+      { description: { $regex: searchRegex } },
+      { category: { $regex: searchRegex } },
+    ]
+    // Example: keyword = "sam"
+    // Matches products where:
+    // name contains "sam" (Samsung, Samsonite...)
+    // OR brand contains "sam" (Samsung...)
+    // OR description contains "sam"
+    // OR category contains "sam"
   }
 
-  // Filter by category
-  if (category) {
-    filter.category = category
-  }
-
-  // Filter by brand
+  if (category) filter.category = category
   if (brand) {
-    filter.brand = brand
+    filter.brand = new RegExp(brand.trim(), 'i')
+    // Also make brand filter partial
   }
 
-  // Filter by price range
   if (minPrice || maxPrice) {
     filter.price = {}
-    if (minPrice) filter.price.$gte = Number(minPrice) // greater than or equal
-    if (maxPrice) filter.price.$lte = Number(maxPrice) // less than or equal
+    if (minPrice) filter.price.$gte = Number(minPrice)
+    if (maxPrice) filter.price.$lte = Number(maxPrice)
   }
 
-  // Filter by minimum rating
   if (rating) {
     filter['ratings.average'] = { $gte: Number(rating) }
-    // Example: rating=4 shows only products with 4+ stars
   }
 
-  // ── Calculate pagination ───────────────────────────
   const skip = (Number(page) - 1) * Number(limit)
-  // page 1 → skip 0
-  // page 2 → skip 12
-  // page 3 → skip 24
 
-  // ── Execute query ──────────────────────────────────
   const products = await Product.find(filter)
     .sort(sort)
-    // sort examples:
-    // '-createdAt' → newest first
-    // 'price' → cheapest first
-    // '-price' → most expensive first
-    // '-ratings.average' → highest rated first
     .skip(skip)
     .limit(Number(limit))
-    .populate('createdBy', 'name email') // include creator's name and email
-    .select('-reviews') // exclude reviews array (too big, fetch separately)
+    .populate('createdBy', 'name email')
+    .select('-reviews')
 
-  // ── Get total count for pagination ────────────────
   const total = await Product.countDocuments(filter)
 
-  // ── Send response ──────────────────────────────────
   res.status(200).json({
     success: true,
     count: products.length,

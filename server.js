@@ -13,18 +13,37 @@ import authRoutes from './routes/auth.routes.js'
 import productRoutes from './routes/product.routes.js'
 import cartRoutes from './routes/cart.routes.js'
 import orderRoutes from './routes/order.routes.js'
+import userRoutes from './routes/user.routes.js'
 
 
 dotenv.config()
 
 const app = express()
 
+
+// ─── CORS — allow both local dev and production frontend ───
+const allowedOrigins = [
+  'http://localhost:5173',                    // local development
+  process.env.FRONTEND_URL,                   // production frontend URL
+].filter(Boolean)  // removes undefined if FRONTEND_URL not set yet
+
+
 // ─── Security Middleware ───────────────────────────────
 app.use(helmet())  // Adds security : headers to protect against common vulnerabilitys : 15+ security 
 app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (Postman, mobile apps)
+    if (!origin) return callback(null, true)
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error(`CORS blocked: ${origin} not allowed`))
+    }
+  },
+  credentials: true,
 }))
+
 
 // ─── Body Parsing ──────────────────────────────────────
 app.use(express.json())
@@ -36,7 +55,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'))    //debugging : show every request in your terminal/console.
 }
 
-// ─── Routes ────────────────────────────────────────────
+// ─── Health Check ────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -46,14 +65,19 @@ app.get('/api/health', (req, res) => {
   })
 })
 
+
+//  ─── Routes ────────────────────────────────────────────
+
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes,  )
 app.use("/api/cart", cartRoutes)
 app.use('/api/orders', orderRoutes)
+app.use('/api/users', userRoutes)
 // app.use('/api/auth', register)
 // app.use('api/auth', login)
 
 // ─── 404 Handler ───────────────────────────────────────
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -73,6 +97,6 @@ const PORT = process.env.PORT || 5000
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 NexKart running on http://localhost:${PORT}`)
-    console.log(`📦 Environment: ${process.env.NODE_ENV}`)
+    // console.log(`📦 Environment: ${process.env.NODE_ENV}`)
   })
 })
