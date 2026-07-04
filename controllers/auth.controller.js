@@ -43,7 +43,8 @@ const sendTokenResponse = async (user, statusCode, res) => {
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     httpOnly: true,   // cannot be accessed by JavaScript
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict' // prevents CSRF attacks
+    // sameSite: 'strict' // prevents CSRF attacks
+
   }
 
   // Store refresh token in database
@@ -238,6 +239,8 @@ export const logout = asyncHandler(async (req, res) => {
   res.cookie('refreshToken', '', {
     expires: new Date(0), // January 1, 1970 — already expired!
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   })
 
   res.status(200).json({
