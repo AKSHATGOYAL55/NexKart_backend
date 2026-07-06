@@ -21,17 +21,17 @@ dotenv.config()
 const app = express()
 
 
-// ─── CORS — allow both local dev and production frontend ───
+// ─── Security Middleware ───────────────────────────────
+app.use(helmet())  // Adds security : headers to protect against common vulnerabilitys : 15+ security 
+app.use(cors({
+  origin: (origin, callback) => {
+
+    // ─── CORS — allow both local dev and production frontend ───
 const allowedOrigins = [
   'http://localhost:5173',                    // local development
   process.env.FRONTEND_URL,                   // production frontend URL
 ].filter(Boolean)  // removes undefined if FRONTEND_URL not set yet
 
-
-// ─── Security Middleware ───────────────────────────────
-app.use(helmet())  // Adds security : headers to protect against common vulnerabilitys : 15+ security 
-app.use(cors({
-  origin: (origin, callback) => {
     // Allow requests with no origin (Postman, mobile apps)
     if (!origin) return callback(null, true)
 

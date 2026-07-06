@@ -34,6 +34,8 @@ const sendTokenResponse = async (user, statusCode, res) => {
   const accessToken = generateAccessToken(user._id)
   const refreshToken = generateRefreshToken(user._id)
 
+  const isProduction = process.env.NODE_ENV === 'production'
+
   // ── Cookie options ──────────────────────────────────
   // We store the refresh token in an httpOnly cookie
   // httpOnly = JavaScript cannot read this cookie
@@ -42,9 +44,14 @@ const sendTokenResponse = async (user, statusCode, res) => {
   const cookieOptions = {
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     httpOnly: true,   // cannot be accessed by JavaScript
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    secure: isProduction,
+    // secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     // sameSite: 'strict' // prevents CSRF attacks
-
+    // Development (localhost): 'lax' works fine — same origin
+    // Production (different domains): MUST be 'none'
+    // 'none' requires secure:true (HTTPS) — Render provides this
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
   }
 
   // Store refresh token in database
@@ -233,14 +240,17 @@ export const logout = asyncHandler(async (req, res) => {
     refreshToken: ''
   })
 
+  const isProduction = process.env.NODE_ENV === 'production'
+
   // ── Step 2: Clear the cookie from browser ──────────
   // Setting the same cookie name with expired date
   // tells the browser to delete it immediately
   res.cookie('refreshToken', '', {
     expires: new Date(0), // January 1, 1970 — already expired!
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/'
   })
 
   res.status(200).json({
