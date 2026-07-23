@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose from "mongoose";
 
 // ─────────────────────────────────────────────────────
 // ORDER SCHEMA
@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema(
     // ── Who placed the order ──────────────────────────
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
 
@@ -21,7 +21,7 @@ const orderSchema = new mongoose.Schema(
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Product',
+          ref: "Product",
           required: true,
         },
 
@@ -94,14 +94,16 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       required: true,
-      enum: ['card', 'upi', 'netbanking', 'cod'],
+      enum: ["card", "upi", "netbanking", "cod"],
       // cod = Cash on Delivery
     },
 
     paymentResult: {
-      id: String,        // Stripe payment intent ID
-      status: String,    // succeeded, pending, failed
-      updateTime: Date,
+      id: String, // razorpay_payment_id
+      status: String, // captured, failed
+      updateTime: String,
+      razorpayOrderId: String,
+      razorpaySignature: String,
       emailAddress: String,
     },
 
@@ -165,14 +167,14 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: [
-        'pending',      // just created, payment not confirmed
-        'processing',   // payment received, preparing to ship
-        'shipped',      // on the way
-        'delivered',    // completed successfully
-        'cancelled',    // user or admin cancelled
-        'refunded',     // money returned
+        "pending", // just created, payment not confirmed
+        "processing", // payment received, preparing to ship
+        "shipped", // on the way
+        "delivered", // completed successfully
+        "cancelled", // user or admin cancelled
+        "refunded", // money returned
       ],
-      default: 'pending',
+      default: "pending",
     },
 
     // ── Tracking ───────────────────────────────────────
@@ -209,22 +211,22 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
     // createdAt = when order was placed
     // updatedAt = last status change
-  }
-)
+  },
+);
 
 // ─────────────────────────────────────────────────────
 // INDEXES — query orders efficiently
 // ─────────────────────────────────────────────────────
 
 // User's orders sorted by date
-orderSchema.index({ user: 1, createdAt: -1 })
+orderSchema.index({ user: 1, createdAt: -1 });
 
 // Admin filter by status
-orderSchema.index({ status: 1 })
+orderSchema.index({ status: 1 });
 
 // Admin filter by date range
-orderSchema.index({ createdAt: -1 })
+orderSchema.index({ createdAt: -1 });
 
-const Order = mongoose.model('Order', orderSchema)
+const Order = mongoose.model("Order", orderSchema);
 
-export default Order
+export default Order;
