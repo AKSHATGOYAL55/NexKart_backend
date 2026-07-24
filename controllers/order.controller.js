@@ -50,6 +50,129 @@ const calculatePrices = (items, discountAmount = 0) => {
 // @route   POST /api/orders
 // @access  Protected
 // ─────────────────────────────────────────────────────
+// export const createOrder = asyncHandler(async (req, res) => {
+//   const { shippingAddress, paymentMethod, orderNotes } = req.body
+
+//   // ── Step 1: Validate required fields ───────────────
+//   if (!shippingAddress) {
+//     throw new AppError('Shipping address is required', 400)
+//   }
+
+//   if (!paymentMethod) {
+//     throw new AppError('Payment method is required', 400)
+//   }
+
+//   const {
+//     fullName,
+//     phone,
+//     street,
+//     city,
+//     state,
+//     pincode
+//   } = shippingAddress
+
+//   if (!fullName || !phone || !street || !city || !state || !pincode) {
+//     throw new AppError(
+//       'All shipping address fields are required: fullName, phone, street, city, state, pincode',
+//       400
+//     )
+//   }
+
+//   // ── Step 2: Get user's cart ─────────────────────────
+//   const cart = await Cart.findOne({ user: req.user._id }).populate(
+//     'items.product',
+//     'name slug price discountPrice stock isActive images'
+//   )
+
+//   if (!cart || cart.items.length === 0) {
+//     throw new AppError(
+//       'Your cart is empty. Add products before placing an order.',
+//       400
+//     )
+//   }
+
+//   // ── Step 3: Validate all cart items ────────────────
+//   // Check each product is still available and in stock
+//   const validationErrors = []
+
+//   for (const item of cart.items) {
+//     if (!item.product || !item.product.isActive) {
+//       validationErrors.push(
+//         `Product "${item.name}" is no longer available`
+//       )
+//       continue
+//     }
+
+//     if (item.product.stock < item.quantity) {
+//       validationErrors.push(
+//         `Only ${item.product.stock} units of "${item.name}" available. You have ${item.quantity} in cart.`
+//       )
+//     }
+//   }
+
+//   if (validationErrors.length > 0) {
+//     throw new AppError(
+//       `Some items in your cart have issues: ${validationErrors.join(', ')}`,
+//       400
+//     )
+//   }
+
+//   // ── Step 4: Build order items from cart ────────────
+//   // Snapshot — copy all details at time of order
+//   const orderItems = cart.items.map((item) => ({
+//     product: item.product._id,
+//     name: item.product.name,
+//     slug: item.product.slug,
+//     image: item.product.images[0]?.url || '',
+//     price: item.price,       // price when added to cart
+//     quantity: item.quantity,
+//     total: item.price * item.quantity,
+//   }))
+
+//   // ── Step 5: Calculate prices ────────────────────────
+//   const prices = calculatePrices(orderItems, cart.discount || 0)
+
+//   // ── Step 6: Create the order ────────────────────────
+//   const order = await Order.create({
+//     user: req.user._id,
+//     items: orderItems,
+//     shippingAddress,
+//     paymentMethod,
+//     ...prices,          // spread itemsPrice, taxPrice, shippingPrice, totalPrice
+//     couponCode: cart.coupon?.code || '',
+//     orderNotes: orderNotes || '',
+//     status: 'pending',
+//     isPaid: false,
+//     isDelivered: false,
+//   })
+
+//   // ── Step 7: Reduce stock for each product ──────────
+//   // This is CRITICAL — reduce stock so others can't buy the same items
+//   for (const item of cart.items) {
+//     await Product.findByIdAndUpdate(
+//       item.product._id,
+//       {
+//         $inc: { stock: -item.quantity }
+//         // $inc with negative number = decrease
+//         // If stock was 10 and user bought 3, stock becomes 7
+//       }
+//     )
+//   }
+
+//   // ── Step 8: Clear user's cart ──────────────────────
+//   // Order is placed — cart is no longer needed
+//   cart.items = []
+//   cart.coupon = undefined
+//   await cart.save()
+
+//   // ── Step 9: Send response ──────────────────────────
+//   res.status(201).json({
+//     success: true,
+//     message: 'Order placed successfully',
+//     order,
+//   })
+// })
+
 export const createOrder = asyncHandler(async (req, res) => {
   const { shippingAddress, paymentMethod, orderNotes } = req.body
 
@@ -68,7 +191,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     street,
     city,
     state,
-    pincode
+    pincode,
   } = shippingAddress
 
   if (!fullName || !phone || !street || !city || !state || !pincode) {
@@ -92,7 +215,6 @@ export const createOrder = asyncHandler(async (req, res) => {
   }
 
   // ── Step 3: Validate all cart items ────────────────
-  // Check each product is still available and in stock
   const validationErrors = []
 
   for (const item of cart.items) {
@@ -105,26 +227,31 @@ export const createOrder = asyncHandler(async (req, res) => {
 
     if (item.product.stock < item.quantity) {
       validationErrors.push(
-        `Only ${item.product.stock} units of "${item.name}" available. You have ${item.quantity} in cart.`
+        `Only ${item.product.stock} units of "${item.name}" available`
       )
     }
   }
 
   if (validationErrors.length > 0) {
     throw new AppError(
-      `Some items in your cart have issues: ${validationErrors.join(', ')}`,
+      `Cart issues: ${validationErrors.join(', ')}`,
       400
     )
   }
 
-  // ── Step 4: Build order items from cart ────────────
-  // Snapshot — copy all details at time of order
+  // ── Step 4: Build order items ───────────────────────
+  // Handle missing slug gracefully
   const orderItems = cart.items.map((item) => ({
     product: item.product._id,
-    name: item.product.name,
-    slug: item.product.slug,
-    image: item.product.images[0]?.url || '',
-    price: item.price,       // price when added to cart
+    name: item.product.name || item.name,
+    slug: item.product.slug || item.product.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-'),
+    // ↑ Generate slug from name if slug is missing
+    image: item.product.images?.[0]?.url || item.image || '',
+    price: item.price,
     quantity: item.quantity,
     total: item.price * item.quantity,
   }))
@@ -132,13 +259,20 @@ export const createOrder = asyncHandler(async (req, res) => {
   // ── Step 5: Calculate prices ────────────────────────
   const prices = calculatePrices(orderItems, cart.discount || 0)
 
-  // ── Step 6: Create the order ────────────────────────
+  // ── Step 6: Create order ────────────────────────────
   const order = await Order.create({
     user: req.user._id,
     items: orderItems,
-    shippingAddress,
+    shippingAddress: {
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      street: street.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      pincode: pincode.trim(),
+    },
     paymentMethod,
-    ...prices,          // spread itemsPrice, taxPrice, shippingPrice, totalPrice
+    ...prices,
     couponCode: cart.coupon?.code || '',
     orderNotes: orderNotes || '',
     status: 'pending',
@@ -146,26 +280,19 @@ export const createOrder = asyncHandler(async (req, res) => {
     isDelivered: false,
   })
 
-  // ── Step 7: Reduce stock for each product ──────────
-  // This is CRITICAL — reduce stock so others can't buy the same items
+  // ── Step 7: Reduce stock ────────────────────────────
   for (const item of cart.items) {
     await Product.findByIdAndUpdate(
       item.product._id,
-      {
-        $inc: { stock: -item.quantity }
-        // $inc with negative number = decrease
-        // If stock was 10 and user bought 3, stock becomes 7
-      }
+      { $inc: { stock: -item.quantity } }
     )
   }
 
-  // ── Step 8: Clear user's cart ──────────────────────
-  // Order is placed — cart is no longer needed
+  // ── Step 8: Clear cart ──────────────────────────────
   cart.items = []
   cart.coupon = undefined
   await cart.save()
 
-  // ── Step 9: Send response ──────────────────────────
   res.status(201).json({
     success: true,
     message: 'Order placed successfully',
