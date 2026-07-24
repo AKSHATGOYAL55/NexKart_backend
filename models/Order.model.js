@@ -94,7 +94,7 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       required: true,
-      enum: ["card", "upi", "netbanking", "cod"],
+      enum: ["card", "upi", "netbanking", "cod", "razorpay"],
       // cod = Cash on Delivery
     },
 

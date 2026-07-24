@@ -1,7 +1,6 @@
-
-
+// import dotenv from 'dotenv'
+import 'dotenv/config'
 import express from 'express'
-import dotenv from 'dotenv'
 import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
@@ -17,7 +16,7 @@ import userRoutes from './routes/user.routes.js'
 import paymentRoutes from './routes/payment.routes.js'
 
 
-dotenv.config()
+// dotenv.config()
 
 const app = express()
 
@@ -74,7 +73,7 @@ app.use('/api/products', productRoutes,  )
 app.use("/api/cart", cartRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/users', userRoutes)
-app.use('/api/payment', paymentRoutes)
+app.use('/api/payments', paymentRoutes)
 // app.use('/api/auth', register)
 // app.use('api/auth', login)
 

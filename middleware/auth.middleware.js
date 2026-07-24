@@ -42,6 +42,8 @@ import User from '../models/User.model.js'
 export const protect = asyncHandler(async (req, res, next) => {
   let token
 
+  // console.log(req.headers.authorization);
+
   // ── Step 1: Find the token ──────────────────────────
   // Token comes in the Authorization header like this:
   // "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpZCI6IjY..."
